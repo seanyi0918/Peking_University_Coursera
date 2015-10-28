@@ -93,130 +93,74 @@
 // 输出时间的方式可以是: cout << setfill('0') << setw(3) << time
 
 #include <iostream>
+#include <iomanip>
 using namespace std;
-
 const int WARRIOR_NUM = 5;
-
-void changeTime(char *TIME);
+/*
+ char * Warrior::product_s[WARRIOR_NUM] = { "dragon","ninja","iceman","lion","wolf" };
+ 红方司令部按照 iceman、lion、wolf、ninja、dragon 的顺序制造武士。
+ 蓝方司令部按照 lion、dragon、ninja、iceman、wolf 的顺序制造武士。
+ */
 
 class Headquarter;
 class Warrior
 {
 private:
-    Headquarter * pHeadquarter;                                 // 用来指向当前武士所在的总部
-    char * name;                                                // 当前武士类型
-    int num;                                                    // 当前武士编号
-    int HP;                                                     // 当前武士生命值
-    int power;                                                  // 当前武士的攻击力
-    
+    Headquarter * pHeadquarter;
+    int kindNo; //武士的种类编号 0 dragon 1 ninja 2 iceman 3 lion 4 wolf
+    int no;
 public:
-    Warrior(Headquarter * p, char * name_, int num_, int HP_, int power_ = 0)
-    {
-        pHeadquarter = p;
-        name = name_;
-        num = num_;
-        HP = HP_;
-        power = power_;
-    }
+    static char * product_s[WARRIOR_NUM];
+    static int initialLifeValue [WARRIOR_NUM];
+    Warrior(Headquarter * p, int no_, int kindNo_);
+    void PrintResult(int nTime);
 };
 
 class Headquarter
 {
 private:
-    int lifeValue;                                              // 总生命值
-    int Color_C;                                                // 总部颜色
-    int life_R;                                                 // 已生产的总生命值, 要更新
-    int HP_R;                                                   // 剩余总生命值, 要更新
-    int line[WARRIOR_NUM];                                      // 对应的生产顺序武士所需要的生命值
-    int count[WARRIOR_NUM];                                     // 对应的每个武士已生产的数量, 要更新
-    int id;                                                     // 总编号, 要更新
-    int tmp_id;                                                 // 当前即将有可能生产的武士编号
-    int totalWarriorNum;                                        // 已经生产的武士总数
-    Warrior * pWarriors[1000];                                  // 拥有的武士们
+    int totalLifeValue;
+    bool stopped;
+    int totalWarriorNum;
+    int Color_C;
+    int curMakingSeqIdx; //当前要制造的武士是制造序列中的第几个
+    int warriorNum[WARRIOR_NUM]; //存放每种武士的数量
+    Warrior * pWarriors[1000];
 public:
     friend class Warrior;
-    Headquarter(int lifevalue_, int Color_C, int line_[]);
-    ~Headquarter();
-    char * getColor(void);                                      // 获取对应总部的颜色
-    char * getproduct(void);                                    // 获取当前生产的武士
-    int produce(char *TIME);                                    // 生产新的武士
-    int get_tmpid(void);                                        // 获取当前生产的武士
-    static char *color[2];                                      // 颜色阵营
-    static char * product_S[WARRIOR_NUM];                       // 武士名字阵营
-    static int sequence[2][WARRIOR_NUM];                        // 武士的制作排列
+    static int makingSeq[2][WARRIOR_NUM]; //武士的制作顺序序列
+    void Init(int color_, int lifevalue_);
+    ~Headquarter() ;
+    int Produce(int nTime);
+    char * GetColor();
+    static char * color[2];
 };
 
-char * Headquarter::color[] = {(char *)"red", (char *)"blue"};
-char * Headquarter::product_S[] = {(char *)"dragon", (char *)"ninja", (char *)"iceman", (char *)"lion", (char *)"wolf"};
-int Headquarter::sequence[2][WARRIOR_NUM] = {{ 2, 3, 4, 1, 0 }, { 3, 0, 1, 2, 4 }};
-
-char * Headquarter::getproduct(void)
+Warrior::Warrior( Headquarter * p, int no_, int kindNo_ )
 {
-    int tdid = sequence[Color_C][tmp_id - 1];
-    return product_S[tdid];
+    no = no_;
+    kindNo = kindNo_;
+    pHeadquarter = p;
 }
 
-int Headquarter::get_tmpid(void)
+void Warrior::PrintResult(int nTime)
 {
-    return sequence[Color_C][tmp_id - 1];
+    cout << setfill('0') << setw(3) << nTime << " ";
+    cout << pHeadquarter->GetColor() << " " << product_s[kindNo] << " " << no;
+    cout << " born with strength " << initialLifeValue[kindNo] << ",";
+    cout << pHeadquarter->warriorNum[kindNo] << " " << product_s[kindNo];
+    cout << " in " << pHeadquarter->GetColor() << " headquarter" << endl;
 }
 
-int Headquarter::produce(char * TIME)
+void Headquarter::Init(int color_, int lifevalue_)
 {
-    int i = 0;
-    for ( ; i < WARRIOR_NUM; i++ )
-    {
-        int ttid = (tmp_id + i) % WARRIOR_NUM;
-        int tdid = sequence[Color_C][ttid];
-        //                cout << ttid << endl;
-        if ( line[tdid] <= HP_R )
-        {
-            tmp_id = ttid + 1;
-            id = id + 1;
-            cout << TIME << " ";
-            HP_R -= line[tdid];
-            life_R += line[tdid];
-            count[tdid] += 1;
-            changeTime(TIME);
-            pWarriors[totalWarriorNum] = new Warrior(this, product_S[tdid], id, line[tdid]);
-            totalWarriorNum += 1;
-            cout << this->getColor() << " " << this->product_S[tdid] << " " << id;
-            cout << " born with strength " << line[tdid] << ",";
-            cout << count[tdid] << " " << this->product_S[tdid];
-            cout << " in " << this->getColor() << " headquarter" << endl;
-            break;
-        }
-    }
-    
-    if ( i == WARRIOR_NUM )
-    {
-        cout << TIME << " " << this->getColor() << " " << "headquarter" << " ";
-        cout << "stops making warriors" << endl;
-        return 0;
-    }
-    
-    return 1;
-}
-
-char * Headquarter::getColor(void)
-{
-    return color[Color_C];
-}
-
-Headquarter::Headquarter(int lifevalue_, int Color_C_, int line_[WARRIOR_NUM])
-{
-    lifeValue = lifevalue_;
-    Color_C = Color_C_;
-    life_R = 0;
-    HP_R = lifeValue;
-    id = 0;                                                         // 总编号, 要更新
-    tmp_id = 0;                                                     // 当前即将有可能生产的武士编号
+    Color_C = color_;
+    totalLifeValue = lifevalue_;
     totalWarriorNum = 0;
+    stopped = false;
+    curMakingSeqIdx = 0;
     for ( int i = 0; i < WARRIOR_NUM; i++ )
-    {
-        line[i] = line_[i];
-        count[i] = 0;                                               // 对应的每个武士已生产的数量, 要更新
-    }
+        warriorNum[i] = 0;
 }
 
 Headquarter::~Headquarter()
@@ -225,64 +169,81 @@ Headquarter::~Headquarter()
         delete pWarriors[i];
 }
 
-
-int main(void)
+int Headquarter::Produce(int nTime)
 {
-    int K;                                                      // 测试数据组数
-    int M;                                                      // 程序输入的能够用来生产总生命值数
-    int casecount = 1;                                          // 输出case
-    int aline[WARRIOR_NUM] = {0, 0, 0, 0, 0};
+    if( stopped )
+        return 0;
+    
+    int searchingTimes = 0;
+    while( Warrior::initialLifeValue[makingSeq[Color_C][curMakingSeqIdx]] > totalLifeValue && searchingTimes < WARRIOR_NUM )
+    {
+        curMakingSeqIdx = ( curMakingSeqIdx + 1 ) % WARRIOR_NUM;
+        searchingTimes++;
+    }
+    
+    int kindNo = makingSeq[Color_C][curMakingSeqIdx];
+    
+    if ( Warrior::initialLifeValue[kindNo] > totalLifeValue )
+    {
+        stopped = true;
+        
+        cout << setfill('0') << setw(3) << nTime << " ";
+        cout << this->GetColor() << " headquarter stops making warriors" << endl;
+        
+        return 0;
+    }
+    //制作士兵：
+    totalLifeValue -= Warrior::initialLifeValue[kindNo];
+    curMakingSeqIdx = ( curMakingSeqIdx + 1 ) % WARRIOR_NUM;
+    pWarriors[totalWarriorNum] = new Warrior( this,totalWarriorNum+1,kindNo);
+    warriorNum[kindNo]++;
+    pWarriors[totalWarriorNum]->PrintResult(nTime);
+    totalWarriorNum++;
+    
+    return 1;
+}
+
+char * Headquarter::GetColor(void)
+{
+    return color[Color_C];
+}
+
+char * Warrior::product_s[] = {(char *)"dragon", (char *)"ninja", (char *)"iceman", (char *)"lion", (char *)"wolf"};
+int Warrior::initialLifeValue [WARRIOR_NUM];
+int Headquarter::makingSeq[2][WARRIOR_NUM] = { { 2, 3, 4, 1, 0 }, { 3, 0, 1, 2, 4 } }; //两个司令部武士的制作顺序序列
+char * Headquarter::color[] = {(char *)"red", (char *)"blue"};
+
+int main()
+{
+    int K;
+    int M;
+    int casecount = 1;
+    Headquarter RedHead,BlueHead;
     
     cin >> K;
     
     while ( K-- )
     {
+        cout << "Case:" << casecount << endl;
+        casecount++;
+        
         cin >> M;
+        for( int i = 0; i < WARRIOR_NUM; i++ )
+            cin >> Warrior::initialLifeValue[i];
         
-        for ( int i = 0; i < WARRIOR_NUM; i++ )
-            cin >> aline[i];
-        
-        cout << "case:" << casecount << endl;
-        
-        char TIME_red[4] = {'0', '0', '0', '\0'};                   // 用来显示红色军营时间
-        char TIME_blue[4] = {'0', '0', '0', '\0'};                  // 用来显示蓝色军营时间
-        
-        Headquarter Headred(M, 0, aline);
-        Headquarter Headblue(M, 1, aline);
-        
-        int red = 1, blue = 1;
+        RedHead.Init(0, M);
+        BlueHead.Init(1, M);
+        int nTime = 0;
         
         while ( true )
         {
-            if ( red == 1 )
-                red = Headred.produce(TIME_red);
-            
-            if ( blue == 1 )
-                blue = Headblue.produce(TIME_blue);
-            
-            if ( red == 0 && blue == 0 )
+            int red = RedHead.Produce(nTime);
+            int blue = BlueHead.Produce(nTime);
+            if( red == 0 && blue == 0)
                 break;
+            nTime++;
         }
-        
-        casecount++;
     }
     
     return 0;
-}
-
-void changeTime(char *TIME)
-{
-    if ( TIME[2] >= '0' && TIME[2] < '9' )
-        TIME[2] += 1;
-    else if ( TIME[2] == '9' )
-    {
-        TIME[2] = '0';
-        if ( TIME[1] >= '0' && TIME[1] < '9' )
-            TIME[1] += 1;
-        else
-        {
-            TIME[1] = '0';
-            TIME[0] += 1;
-        }
-    }
 }
